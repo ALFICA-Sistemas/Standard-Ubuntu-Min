@@ -1,0 +1,1185 @@
+<Instalacion_inicial>
+<!--  Usar Ubuntu_18.04_Minimal_x86-32.iso
+  (que es el último que soporta 32bits de PCs viejas)
+  grabado en un pendrive booteable con Rufus, Ventoy o YUMI -->
+  - Seleccionar [Install] y tecla {Enter} (demora un rato)
+  - Seleccionar [Español] y tecla {Enter}
+  - Seleccionar [Venezuela] y tecla {Enter}
+  - Seleccionar [Si] detectar distribución de teclas y tecla {Enter}
+    - Pisar las teclas solicitadas por el detector de distribuxión de teclas
+  - Dar nombre a la computadora (temporal o definitivo si es conocido)
+  - Seleccionar [Estados Unidos] como mirror/réplica  y tecla {Enter} (el mirror de Venezuela es mas lento o caído)
+    - Aceptar us.archive.ubuntu.com
+  - Dejar el proxy en blanco y tecla {Enter} (demora un poco en descargar los repositorios)
+  - Ingresar "Administrador de Equipo" como nombre de usuario y tecla {Enter}
+  - Ingresar "sysadmin" como nombre de cuenta y tecla {Enter}
+  - Ingresar la contraseña standard de la empresa y tecla {Enter}
+  - Repetir la contraseña y tecla {Enter}
+  - Seleccionar [Si] en la confirmación de que la zona horaria es Caracas y tecla {Enter}
+  - Seleccionar particionado [Guiado - todo el disco] y tecla {Enter}
+  - Seleccionar el disco a usar, generalmetne sda y tecla {Enter} (cuidado no seleccionar el pendrive)
+  - Seleccionar [Si] en la confirmacion de particionado del disco y tecla {Enter}
+  - Esperar un buen rato mientras descarga paquetes básicos
+  - Seleccionar "Instalación automática de actualizaciones de seguridad" y tecla {Enter}
+	- En "Seleccion de programas" marcar:
+		OpenSSH (para poder conectarse remoto a shell de texto)
+			se puede instalar después ejecutando
+				sudo apt install openssh-server
+		Samba (para poder ofrecer y conectarse a directorios compartidos)
+			se puede instalar después ejecutando
+				sudo apt install samba
+<!--		Interfaz gráfica mínima y ligera:
+		Lubuntu minimal Qt (aunque sea servidor sin pantalla, para facilitar administración remota)
+			se puede instalar después ejecutando
+				sudo apt-get install lxde xorg lxdm  --no-install-recommends
+					(Need to get 375 MB of archives. After this operation, 1,707 MB of additional disk space will be used.)
+					o
+				sudo apt-get install lubuntu-core
+					(Need to get 209 MB of archives. After this operation, 1,079 MB of additional disk space will be used.)
+					o
+				sudo apt-get install --no-install-recommends lubuntu-desktop
+					o
+				sudo apt-get install lightdm lightdm-gtk-greeter lubuntu-default-settings lxappearance lxterminal
+					o
+				sudo apt-get install xserver-xorg-video-all xserver-xorg
+					y luego
+				sudo apt-get install lxappearance obconf -->
+		Seleccionar [Continuar] y tecla {Enter}
+  - Instalar GRUB2 en el registro principal de arranque (cuidado no seleccionar el pendrive)
+  - Seleccionar [Si] en la confirmación de reloj en hora UTC y tecla {Enter}
+  - Seleccionar [Continuar] en la pantalla de final de la instalación y tecla {enter} (sacar el pendrive mientras reinicia)
+</Instalacion_inicial>
+
+<Configuraciones>
+	<ssh>
+<!--	- Cambiar el puerto default 22 al ruteable 4•••2 que convenga según el IP. Ejecutar en una ventana de shell: -->
+		sudo nano /etc/ssh/sshd_config
+<!--		Cambiar la línea donde dice -->
+			# Port 22
+<!--		por -->
+			Port 4•••2
+<!--		y Reiniciar el servicio ssh ejecutando: -->
+			service ssh restart
+<!--		o -->
+		service ssh stop
+		service ssh start
+<!--		NOTA: si ya se esta trabajando remoto por la red, puede que la conexión se desconecte -->
+	</ssh>
+	<samba>
+<!--	Editar la configuración de samba ejecutando los comandos: -->
+			sudo mv /etc/samba/smb.conf /etc/samba/smb_orig.conf
+		sudo nano /etc/samba/smb.conf
+<!--	con el siguiente contenido: -->
+		<smb.conf>
+			[global]
+			# Directorios compartidos a mostrar aunque no haya habido login:
+			  auto services = Publico Recursos
+
+			# Parametros de identificacion en la red :
+			  workgroup = ALFICA
+			  netbios name = NombrePC
+			  server string = DEP - Descripcion de la PC
+			  hosts allow = 127.0.0.1 192.1.1.0/24
+			  hosts deny = 0.0.0.0/0
+			  ;name resolve order = lmhosts wins host bcast
+
+			# Parametros para que sea el mantenedor de la lista de computadoras del grupo de trabajo:
+			  # NUNCA
+			  ;domain logons = no
+			  ;domain master = no
+			  ;local master = no
+			  ;preferred master = no
+			  ;os level = 1
+			  # SIEMPRE:
+			  domain master = yes
+			  preferred master = yes
+			  os level = 200
+
+			# Parametros de la autenticacion de usuarios:
+			  security = user
+			  guest account = nobody
+			  map to guest = Bad User
+			  passdb backend = smbpasswd
+			  passwd program = /usr/bin/passwd %u
+			  passwd chat = *New*password* %n\n *Please*retype*new*password* %n\n *password*successfu$
+			  encrypt passwords = true
+			  obey pam restrictions = no
+			  unix password sync = yes
+			  ntlm auth = yes
+			  client max protocol = SMB2
+			  pam password change = yes
+			  # Inclusion de nombres de usuario alternos (p.e. JesusT=JesusT_Nvo)
+			  username map = /etc/samba/user.map
+
+			  # Parametros para que en las PC con Windows 9x no pida password para IPC$
+			  # segun instrucciones encontradas en
+			  # http://www.troubleshooters.com/linux/win9x_samba.htm
+			  lanman auth = Yes
+			  client lanman auth = Yes
+			  client plaintext auth = Yes
+
+			  # Parametros de registro de eventos:
+			  # syslog = 0
+			#  log level = 5
+			  log file = /var/log/samba/%M.log
+			  max log size = 1000
+
+			  # Parametros de restricciones globales de archivos:
+			  hide unreadable = yes
+			  hide dot files = yes
+			  # En principio debe dar acceso total a archivos y  a directorios:
+			  inherit permissions = yes
+			  force create mode = 777
+			  force directory mode = 777
+			  create mask = 0777
+			  directory mask = 0777
+			  force user = nobody
+			;  min protocol = SMB2
+
+			  # Para que no comparta una impresora inexistente en este servidor:
+			#  disable spoolss = Yes
+
+			  # Parametros varios (o que no se para que sirven!)
+			  ;socket options = TCP_NODELAY
+			  dns proxy = no
+			  ;smb ports = 445 139
+			  client use spnego = no
+
+			# Directorios compartidos (adecuar a lo necesario en este computador):
+			[Dir1]
+					  comment = Carpeta compartida
+					  path = /home/AlgunaCarpeta
+					  public = yes
+					  browseable = Yes
+					  writable = Yes
+		</smb.conf>
+	</samba>
+	<bash>
+<!--	Editar la configuración default del shell ejecutando los comandos: -->
+<!--	con el siguiente contenido -->
+		sudo nano /etc/skel/.bashrc
+		<bashrc>
+			# ~/.bashrc: executed by bash(1) for non-login shells.
+			# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc) for examples
+
+			# Para recargar ediciones a este archivo, ejecutar
+			# source ~/.bashrc
+			#  o
+			# . ~/.bashrc
+
+			# http://tldp.org/LDP/abs/html/comparison-ops.html
+			#       [ -z "$algo" ]     True si $algo es Null (string de longitud cero)
+			#       [ -n "$algo" ]     True si $algo es NO Null
+			#       [ -r /algun/arch ] True si /algun/arch es un archivo legible (readable)
+
+			# PS1 es el prompt de la sesion
+			#  Si no existe (es Null) no es sesion interactiva en pantalla,
+			#  no configurar mas nada de esta sesion
+			  [ -z "$PS1" ] && return
+
+			########## CONFIGURACION DEL HISTORY ##########
+			# Don't put duplicate lines in the history. See bash(1) for more options
+			# ... or force ignoredups and ignorespace
+			  HISTCONTROL=ignoredups:erasedups
+			# append to the history file, don't overwrite it
+			  shopt -s histappend
+			# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+			  HISTSIZE=1000
+			  HISTFILESIZE=2000
+			# Time tag history
+			  export HISTTIMEFORMAT="%h%d %H:%M:%S "
+			# Ignore Specific Commands
+			  export HISTIGNORE="history:otrocomando:cualquierotro"
+			# Store multi-line commands in one history entry:
+			  shopt -s cmdhist
+			# append and reload the history after each command
+			  PROMPT_COMMAND="history -a; history -n"
+			################################################
+
+			########## DEFINICIONES DE ALIASES ##########
+			# Es mas ordenado poner los aliases en otro archivo
+			#  Lo normal es ~/.bash_aliases, pero se puede poner en otro lado
+			#  por ejemplo un archivo de aliases comunes a todos los usuarios
+			# Ver /usr/share/doc/bash-doc/examples
+			# Incluir .bash_aliases sin ver si existe,
+			#  justamente para que de un error si no existe
+			. ~/.bash_aliases
+			################################################
+
+			# check the window size after each command and, if necessary,
+			# update the values of LINES and COLUMNS.
+			  shopt -s checkwinsize
+
+			########## AGREGAR EL CHROOT AL PROMPT ##########
+			# Si este shell esta dentro de un chroot (directorio raiz a partir de un sub-dir)
+			#  y si ese directorio raiz tiene un archivo /etc/debian_chroot
+			#  y la variable debian_chroot esta vacia, tomarla del archivo
+			#  para mostrarla en el prompt
+			if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+				 debian_chroot=$(cat /etc/debian_chroot)
+			fi
+			################################################
+
+			# set a fancy prompt (non-color, unless we know we "want" color)
+			case "$TERM" in
+				 xterm-color) color_prompt=yes;;
+			esac
+
+			# uncomment for a colored prompt, if the terminal has the capability; turned
+			# off by default to not distract the user: the focus in a terminal window
+			# should be on the output of commands, not on the prompt
+			# force_color_prompt=yes
+			if [ -n "$force_color_prompt" ]; then
+				 if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+					  # We have color support; assume it's compliant with Ecma-48
+					  # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+					  # a case would tend to support setf rather than setaf.)
+					  color_prompt=yes
+				 else
+					  color_prompt=
+				 fi
+			fi
+
+			if [ "$color_prompt" = yes ]; then
+				 PS1='${debian_chroot:+($debian_chroot)}\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\$ '
+			else
+				 PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+			fi
+			unset color_prompt force_color_prompt
+
+
+			# If this is an xterm set the title to user@host:dir
+			case "$TERM" in
+			xterm*|rxvt*)
+				 PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+				 ;;
+			*)
+				 ;;
+			esac
+
+			# enable color support of ls and also add handy aliases
+			if [ -x /usr/bin/dircolors ]; then
+				 test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+			#    alias ls='ls --color=auto'
+			#    alias grep='grep --color=auto'
+			#    alias fgrep='fgrep --color=auto'
+			#    alias egrep='egrep --color=auto'
+			fi
+
+			# enable programmable completion features (you don't need to enable
+			# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+			# sources /etc/bash.bashrc).
+			#if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+			#    . /etc/bash_completion
+			#fi
+
+			if [ -f "$HOME/.bash_ps1" ]; then
+			  . "$HOME/.bash_ps1"
+			fi
+
+			# Si es root, que el prompt sea rojo, si no que sea azul:
+			if [ "`id -u`" -eq 0 ]; then
+			#  PS1='# '
+				PS1="\[\e[1;31;43;40m\]\u \h \w \n#\[\e[00m\] "
+				else
+			#  PS1='$ '
+				PS1="\[\e[1;36m\]\u \h \w \n\$\[\e[00m\] "
+			fi
+			# Agregar la campanita para que avise al terminar comandos largos
+			PS1=$PS1$(printf "\007")
+
+			# Si se quiere que el usuario actual tenga bash en ingles
+			export LANGUAGE=en_US.UTF-8
+		</bashrc>
+		sudo nano /etc/skel/.bash_aliases
+		<bash_aliases>
+			realias () {
+			  source ~/.bashrc
+			}
+
+			alias grep='grep --color=auto'
+			alias fgrep='fgrep --color=auto'
+			alias egrep='egrep --color=auto'
+			alias ls='ls --color=auto'
+			alias ll='ls -Al'
+
+			alias carpetas='smbclient -L $(hostname) -U '$1
+			alias puertos='sudo netstat -tulpn | grep LISTEN'
+			alias mkdir="mkdir -pv"
+			alias hist='history | grep '$1
+			alias histfin='history | --lines='$1
+
+			denadie () {
+			  sudo chown -R nobody $1 &&
+			  sudo chgrp -R nogroup $1 &&
+			  sudo chmod 777 -R $1
+			}
+
+			solomio () {
+				sudo chown -R $(whoami) $1 &&
+				sudo chgrp -R nogroup $1 &&
+				sudo chmod 744 -R $1
+			}
+
+			clave () {
+			  sudo echo -e "$2\n$2\n" | passwd $1
+			  sudo echo -e "$2\n$2\n" | smbpasswd $1
+			}
+
+			espacio () {
+			  lsblk
+			  echo
+			  df -k $1
+			# df -h $1
+			# du -d 1 -h $1
+			}
+
+			dirs () {
+			  if [ "$1" == "" ];
+			  then
+				 base=$(pwd)
+			  else
+				 base=$1
+			  fi
+			  ls -dAl $base/*/ | more
+			}
+
+			actualizar () {
+			  sudo apt-get update
+			  sudo apt-get dist-upgrade
+			  sudo apt-get upgrade
+			  sudo apt-get autoremove
+			}
+		</bash_aliases>
+<!--		y copiar ambos archivos al home del usuario actual  -->
+	sudo chown -R nobody /etc/skel
+	sudo chgrp -R nogroup /etc/skel
+	sudo chmod -R 777 /etc/skel
+	cp /etc/skel/.bash_aliases ~/.bash_aliases
+	cp /etc/skel/.bashrc ~/.bashrc
+	</bash>
+<Sincronizacion_Hora>
+Descomentar las líneas e engresar el servidor principal y el fallback en /etc/systemd/timesyncd.conf
+  [Time]
+  NTP=1.2.3.4
+  FallbackNTP=ntp.ubuntu.com
+  RootDistanceMaxSec=5
+  PollIntervalMinSec=32
+  PollIntervalMaxSec=2048
+Salvar la configuracion, activarla, reiniciar el servicio y verificarlo:
+sudo timedatectl set-ntp true
+sudo systemctl restart systemd-timesyncd.service
+     systemctl status  systemd-timesyncd.service
+timedatectl
+</Sincronizacion_Hora>
+	<Usuarios>
+<!--	Crear los usuarios que se necesiten en esta PC
+		(usar mismos nombres y contraseñas que en otras PCs y servidor utilizados por ellos) -->
+		sudo adduser NombreUsuario
+	</Usuarios>
+	<GUI>
+		<Minimo>
+<!--	Solo incluye :
+			LXDM, el DE ligero (Desktop Environment, Entorno de Escritorio)
+			Openbox, el WM ligero (Windows Manager, Administrador de Ventanas)
+			PCmanFM, manejador de archivos
+			LXTerminal, emulador de terminal de texto. -->
+		sudo apt-get install lubuntu-core --no-install-recommends
+<!--		(Need to get 64.3 MB of archives. After this operation, 507 MB of additional disk space will be used) -->
+		</Minimo>0
+		<Accesorios>
+<!--	Coquetería / comodidad para los usuarios: 
+		La primera utility instala una pila de dependencias:
+		Need to get 32.8 MB of archives. After this operation, 128 MB of additional disk space will be used. -->
+
+<!--	Configurador del Windows Manager Openbox -->
+		sudo apt install obconf
+<!--	Configurador del Desktom Manager LXDE (Need to get 81.2 kB of archives. After this operation, 556 kB of additional disk space will be used.) -->		
+		sudo apt install lxappearance
+<!--	Configurador de apps por deefcto (Need to get 52.3 kB of archives. After this operation, 493 kB of additional disk space will be used.) -->
+		sudo apt install lxsession-default-apps
+<!--	Manejador de archivos comprimidos (Need to get 320 kB of archives. After this operation, 1.884 kB of additional disk space will be used.) -->
+		sudo apt-get install file-roller
+<!--	Calculadora (Need to get 383 kB of archives. After this operation, 2,169 kB of additional disk space will be used.) -->
+		sudo apt-get install galculator
+<!--	Visor de imagnes (Need to get 16.8 MB of archives. After this operation, 72.6 MB of additional disk space will be used.) -->
+		sudo apt-get install gpicview
+<!--	Capturador de imagenes (Need to get 556 kB of archives. After this operation, 1,534 kB of additional disk space will be used.) -->
+		sudo apt-get install gnome-screenshot
+<!--	Bloc de notas Need to get 89.7 kB of archives. After this operation, 464 kB of additional disk space will be used. -->
+		sudo apt-get install leafpad			
+		</Accesorios>
+		<Utilities>
+<!--	Administradores de discos (Need to get 425 kB of archives. After this operation, 1,964 kB of additional disk space will be used.) -->
+		sudo apt-get install gnome-disk-utility
+<!--	Analizador de espacio (Need to get 168 kB of archives. After this operation, 926 kB of additional disk space will be used.) -->
+		sudo apt-get install baobab
+<!--	Editor de particiones (Need to get 1,895 kB of archives. After this operation, 8,940 kB of additional disk space will be used.) -->
+		sudo apt-get install gparted
+				
+
+		</Utilities>
+	</GUI>
+
+	<GUI remoto>
+		<VNC> para acceso remoto grafico a lo que esté en pantalla
+			Instalarlo:
+				sudo apt-get install x11vnc
+			Configurar el password standard alfica1 (queda en /etc/x11vnc.pass):
+				sudo x11vnc -storepasswd /etc/x11vnc.pass
+			Verificar que funciona:
+				sudo x11vnc --rfbport 5900 -permitfiletransfer -rfbauth /etc/x11vnc.pass
+			Configurar que arranque automáticamente:
+			sudo nano /lib/systemd/system/x11vnc.service
+				[Unit]
+				  Description=Start x11vnc at startup.
+				  After=multi-user.target
+				[Service]
+				  Type=simple
+				  ExecStart=/usr/bin/x11vnc -display 0 -auth guess -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 4•••5 -shared
+				[Install]
+				  WantedBy=multi-user.target
+			Refrescar los servicios de systemd con el recién creado,
+				sudo systemctl daemon-reload
+			Activar el servicio
+				sudo systemctl enable x11vnc.service
+				sudo systemctl start x11vnc.service
+		</VNC>
+	RDP para acceso remoto grafico a sesión virtual independiente
+	</GUI remoto>
+</Configuraciones>
+
+<Nombre>
+Si se está configurando una genérica para pruebas, se le puede dejar el hostname = ubuntu
+Luego cambiarlo en /etc/hostname
+</Nombre>
+
+<Entorno bash>
+	Cambiar el shell por defecto de sh a bash y personalizarlo
+chsh --shell /bin/bash USUARIO
+
+	Respaldar el archivo de configuración de sesión ~/.bashrc
+	cambiándole el nombre, y creando uno nuevo:
+mv ~/.bashrc ~/.bashrc.orig
+nano ~/.bashrc
+
+	<bashrc>
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc) for examples
+
+# Para recargar ediciones a este archivo, ejecutar
+# source ~/.bashrc
+
+# http://tldp.org/LDP/abs/html/comparison-ops.html
+#       [ -z "$algo" ]     True si $algo es Null (string de longitud cero)
+#       [ -n "$algo" ]     True si $algo es NO Null
+#       [ -r /algun/arch ] True si /algun/arch es un archivo legible (readable)
+
+# PS1 es el prompt de la sesion
+#  Si no existe (es Null) no es sesion interactiva en pantalla,
+#  no configurar mas nada de esta sesion
+  [ -z "$PS1" ] && return
+
+########## CONFIGURACION DEL HISTORY ##########
+# Don't put duplicate lines in the history. See bash(1) for more options
+# ... or force ignoredups and ignorespace
+  HISTCONTROL=ignoredups:erasedups
+# append to the history file, don't overwrite it
+  shopt -s histappend
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+  HISTSIZE=1000
+  HISTFILESIZE=2000
+# Time tag history
+  export HISTTIMEFORMAT="%h%d %H:%M:%S "
+# Ignore Specific Commands
+  export HISTIGNORE="history:otrocomando:cualquierotro"
+# Store multi-line commands in one history entry:
+  shopt -s cmdhist
+# append and reload the history after each command
+  PROMPT_COMMAND="history -a; history -n"
+################################################
+
+########## DEFINICIONES DE ALIASES ##########
+# Es mas ordenado poner los aliases en otro archivo
+#  Lo normal es ~/.bash_aliases, pero se puede poner en otro lado
+#  por ejemplo un archivo de aliases comunes a todos los usuarios
+# Ver /usr/share/doc/bash-doc/examples
+# Incluir .bash_aliases sin ver si existe,
+#  justamente para que de un error si no existe
+. ~/.bash_aliases
+################################################
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+  shopt -s checkwinsize
+
+########## AGREGAR EL CHROOT AL PROMPT ##########
+# Si este shell esta dentro de un chroot (directorio raiz a partir de un sub-dir)
+#  y si ese directorio raiz tiene un archivo /etc/debian_chroot
+#  y la variable debian_chroot esta vacia, tomarla del archivo
+#  para mostrarla en el prompt
+if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+################################################
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+# force_color_prompt=yes
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+#    alias ls='ls --color=auto'
+#    alias grep='grep --color=auto'
+#    alias fgrep='fgrep --color=auto'
+#    alias egrep='egrep --color=auto'
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+#if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+#    . /etc/bash_completion
+#fi
+
+if [ -f "$HOME/.bash_ps1" ]; then
+  . "$HOME/.bash_ps1"
+fi
+
+# Si es root, que el prompt sea rojo. Si no que sea azul:
+if [ "`id -u`" -eq 0 ]; then
+#  PS1='# '
+   PS1="\[\e[1;31;43;40m\]\u \h \w \n#\[\e[00m\] "
+   else
+#  PS1='$ '
+   PS1="\[\e[1;36m\]\u \h \w \n\$\[\e[00m\] "
+fi
+</bashrc>
+
+<bash_aliases>
+realias () {
+  source ~/.bashrc
+}
+
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+alias ls='ls --color=auto'
+alias ll='ls -Al'
+alias carpetas='smbclient -L $(hostname) -U '$1
+alias puertosn='ss -ltpn'
+alias puertoss='ss -ltp'
+alias mkdir="mkdir -pv"
+alias hist='history | grep '$1
+alias histfin='history | --lines='$1
+
+denadie () {
+  sudo chown -R nobody $1 &&
+  sudo chgrp nogroup -R $1 &&
+  sudo chmod 777 -R $1
+}
+
+solomio () {
+   sudo chown -R $(whoami) $1 &&
+   sudo chgrp nogroup -R $1 &&
+   sudo chmod 744 -R $1
+}
+
+clave () {
+  sudo echo -e "$2\n$2\n" | passwd $1
+  sudo echo -e "$2\n$2\n" | smbpasswd $1
+}
+
+espacio () {
+  df -k $1
+  df -h $1
+# du -d 1 -h $1
+}
+
+dirs () {
+  if [ "$1" == "" ];
+  then
+    base=$(pwd)
+  else
+    base=$1
+  fi
+  ls -dAl $base/*/ | more
+}
+
+actualizar () {
+  sudo apt-get update
+  sudo apt-get dist-upgrade
+  sudo apt-get upgrade
+  sudo apt-get autoremove
+}
+</bash_aliases>
+
+	Simplificar los archivos de textos de login en /etc/update-motd.d:
+	sudo nano /etc/update-motd.d/ ...
+		<00-header>
+#!/bin/bash
+printf  '\e[1;33m%-6s\e[m\n' "$(hostname) (encendido desde $(uptime -s))"
+printf "($(lsb_release -sd) $(lsb_release -sc) - kernel $(uname -r) $(uname -m))\n"
+		</00-header>
+		<10-help-text>
+		Solo agregar al principio:
+## NO ME INTERESA ESTA SECCION
+exit
+		</10-help-text>
+		<50-motd-news>
+		Solo agregar al principio:
+## NO ME INTERESA ESTA SECCION
+exit
+		</50-motd-news>
+		<80-esm>
+		Solo agregar al principio:
+## NO ME INTERESA ESTA SECCION
+exit
+		</80-esm>
+		<80-livepatch>
+		Solo agregar al principio:
+## NO ME INTERESA ESTA SECCION
+exit
+		</80-livepatch>
+</Entorno bash>
+
+<Red Windows>
+	Para que otros hosts vean directorios e impresoras de este:
+sudo apt install samba
+	Respaldar el archivo de configuración /etc/samba/smb.conf
+	cambiándole el nombre, y creando uno nuevo:
+sudo mv /etc/samba/smb.conf /etc/samba/smb.conf.orig
+sudo nano /etc/samba/smb.conf
+	<smb.conf>
+#===== Por organizacion, poner aqui solo
+#===== los parametros globales de configuracion
+#===== La especificacion de los directorios compartidos
+#===== generales, grupales e individuales va en Includes
+
+[global]
+# Directorios compartidos a mostrar aunque no haya habido login:
+  auto services = Publico Recursos
+
+# Parametros de identificacion en la red :
+  workgroup = Straylight
+  netbios name = NOMBRE-DE-ESTE-PC
+  server string = DESCRIPCION-DE-ESTE-PC
+  # Dejar pasar solo a los host en esta red:
+  hosts allow = 127.0.0.1 192.168.0.0/16
+  hosts deny = 0.0.0.0/0
+  ;name resolve order = lmhosts wins host bcast
+
+# Parametros para que sea o no el mantenedor de la lista de computadoras del grupo de trabajo:
+  # NUNCA
+  domain logons = no
+  domain master = no
+  local master = no
+  preferred master = no
+  os level = 1
+  # SIEMPRE:
+  ;domain master = yes
+  ;preferred master = yes
+  ;os level = 200
+
+# Parametros de la autenticacion de usuarios:
+  security = user
+  guest account = nobody
+  map to guest = Bad User
+  passdb backend = smbpasswd
+  passwd program = /usr/bin/passwd %u
+  passwd chat = *New*password* %n\n *Please*retype*new*password* %n\n *password*successfu$
+  encrypt passwords = true
+  obey pam restrictions = no
+  unix password sync = yes
+  ntlm auth = yes
+  client max protocol = SMB2
+  pam password change = yes
+  # Inclusion de nombres de usuario alternos (p.e. JesusT=JesusT_Nvo)
+  username map = /etc/samba/user.map
+
+  # Parametros para que en las PC con Windows 9x no pida password para IPC$
+  # segun instrucciones encontradas en
+  # http://www.troubleshooters.com/linux/win9x_samba.htm
+  lanman auth = Yes
+  client lanman auth = Yes
+  client plaintext auth = Yes
+
+  # Parametros de registro de eventos:
+  # syslog = 0
+#  log level = 5
+  log file = /var/log/samba/%M.log
+  max log size = 1000
+
+  # Parametros de restricciones globales de archivos:
+  hide unreadable = yes
+  hide dot files = yes
+  # En principio debe dar acceso total a archivos y  a directorios:
+  inherit permissions = yes
+  force create mode = 777
+  force directory mode = 777
+  create mask = 0777
+  directory mask = 0777
+  force user = nobody
+;  min protocol = SMB2
+
+  # Para que no comparta una impresora inexistente en este servidor:
+  disable spoolss = Yes
+
+  # Parametros varios (o que no se para que sirven!)
+  ;socket options = TCP_NODELAY
+  dns proxy = no
+  ;smb ports = 445 139
+  client use spnego = no
+
+  # Archivos con la configuracion de directorios compartidos comunes, individuales, departamental$
+  include = /etc/samba/Compartidos.conf
+	</smb.conf>
+sudo nano /etc/samba/Compartidos.conf
+	<Compartidos.conf>
+#============== Definiciones de directorios compartidos comunes ==============
+# Todos los directorios compartidos estan en discos separados  montado debajo de /Discos/
+# recordar crear ese directorio y asignarle permisos 777
+#  ( chmod -R 777 /Discos/ )
+
+# Directorio personal de cada usuario:
+[homes]
+        comment = Archivos de %u en %h
+        browseable = yes
+        valid users = %S
+        read only = no
+        writable = Yes
+
+[Discos]
+        comment = Directorio base para los mount points
+        path = /Discos/
+        public = yes
+        writeable = yes
+        Browseable = yes
+        guest ok = yes
+        # veto files = /*.msi/*.exe/*.inf/*.com/*.cmd/*.pif/*.scr/*.vbs/*.js/*.jse/*.ini/
+        force user = nobody
+        force group = nogroup
+
+[rootfs]
+        comment = Carpeta comun para todos (solo lectura)
+        path = /
+        public = yes
+        guest ok = yes
+        writeable = No
+        Browseable = yes
+	</Compartidos.conf>
+
+	Para porder auto-montar directorios compartidos de otros hosts:
+sudo apt-get install cifs-utils
+	Para montar solo cuando se necesite:
+sudo mount -t cifs -o username=NOMBREUSUARIO,password=CONTRASEÑA //HOST-O-IP/SHARE /PATH/DONDE/MONTARLO
+	Para montarlo automáticamente en el arranque agregar al /etc/fstab:
+//HOST-O-IP/SHARE /PATH/DONDE/MONTARLO cifs username=NOMBREUSUARIO,password=CONTRASEÑA@# 0 0
+	y verificar que el fstab quedó bien:
+mount -a
+
+	Para que se anuncie en red con Windows 10:
+	https://github.com/christgau/wsdd
+	Ver la versión exacta:
+lsb_release -cs
+sudo nano /etc/apt/sources.list.d/wsdd.list
+deb https://pkg.ltec.ch/public/ version main
+
+sudo apt-key adv --fetch-keys https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key
+sudo apt update
+sudo apt install wsdd
+	Para que se ejecute al encender la computadora (y cada 10 minutos, porsia):
+sudo crontab -e
+@reboot             /usr/bin/wsdd& # Anuniarse en la red Windows
+*/10 *   *   *   *  /usr/bin/wsdd& # Anunciarse en la red Windows
+
+</Red Windows>
+
+<Automontar particiones>
+Montar discos en el mismo lugar:
+( https://www.techrepublic.com/article/how-to-properly-automount-a-drive-in-ubuntu-linux/ )
+	Preparar directorio base:
+		sudo mkdir /Discos
+	Preparar punto de montaje a cada disco:
+		sudo mkdir /Discos/Disco1
+		sudo mkdir /Discos/Disco2
+		sudo mkdir /Discos/Disco3
+	Listar los discos instalados:
+		sudo fdisk -l
+	Listar los UUID:
+		sudo blkid
+	Editar la configuración de montaje:
+		sudo nano /etc/fstab
+		agregar una linea para cada particion:
+			UUID=14D82C19D82BF81E /Discos/Disco1   auto nosuid,nodev,nofail,x-gvfs-show 0 0
+		donde:
+		• UUID=14D82C19D82BF81E - is the UUID of the drive. You don't have to use the UUID here. You could just use /dev/sdj, but it's always safer to use the UUID as that will never change (whereas the device name could).
+		• /data - is the mount point for the device.
+		• auto - automatically determine the file system
+		• nosuid - specifies that the filesystem cannot contain set userid files. This prevents root escalation and other security issues.
+		• nodev - specifies that the filesystem cannot contain special devices (to prevent access to random device hardware).
+		• nofail - removes the errorcheck.
+		• x-gvfs-show - show the mount option in the file manager. If this is on a GUI-less server, this option won't be necessary.
+		• 0 - determines which filesystems need to be dumped (0 is the default).
+		• 0 - determine the order in which filesystem checks are done at boot time (0 is the default).
+	Probar sin reiniciar:
+		sudo mount -a
+</Automontar particiones>
+
+<Apagado automatico>
+sudo crontab -e
+59  23  *   *   0-4 /sbin/shutdown -P now   # Apagado de Domingo a Jueves
+30   1  *   *    6  /sbin/shutdown -P now   # Apagado en Viernes (ya Sabado)
+30   1  *   *    0  /sbin/shutdown -P now   # Apagado en Sabado (ya Domingo)
+</Apagado automatico>
+
+<DNS especiales>
+sudo apt install resolvconf
+sudo systemctl start resolvconf.service
+sudo systemctl enable resolvconf.service
+sudo systemctl status resolvconf.service
+sudo nano /etc/resolvconf/resolv.conf.d/head
+  nameserver 8.8.8.8   # Google
+  nameserver 10.35.0.6 # PiHole
+cat /etc/resolv.conf
+</DNS especiales>
+
+<Mouse serial>
+	Para activar un mouse / touchpad serial RS232:
+sudo apt install inputattach
+inputattach --microsoft /dev/ttyS0
+	Para que se active al arranque el mouse / touchpad serial RS232:
+	Agregar ese comando antes del "exit 0" en /etc/rc.local
+	o agregarlo a crontab:
+sudo crontab -e
+@reboot inputattach --microsoft /dev/ttyS0
+</Mouse serial>
+
+<GUI minimo>
+#	Para instalar un GUI mínimo después de instalar solo el sistema:
+sudo apt-get install lxde-core --no-install-recommends
+#	o con algunas utilities:
+sudo apt-get install lxde --no-install-recommends
+sudo apt install gnome-software
+sudo apt install gnome-disk-utility
+sudo apt install network-manager-gnome
+sudo apt install gnome-system-tools
+sudo apt install gparted
+sudo apt install hardinfo
+sudo apt install neofetch
+sudo apt install beep
+#	Un navegador ligero, si hace falta
+sudo snap install midori
+
+	Desactivar la interfaz gráfica en el arranque (para usarla solo cuando haga falta):
+sudo systemctl set-default multi-user.target
+	Activar la interfaz gráfica en el arranque (para tenerla disponible siempre):
+sudo systemctl set-default graphical.target
+	Activar la interfaz gráfica desde bash (si no arranca automático pero hizo falta):
+sudo systemctl start gdm3.service
+	https://askubuntu.com/questions/1056363/how-to-disable-gui-on-boot-in-18-04-bionic-beaver
+</GUI minimo>
+
+<GUI mas completo>
+	<Utilities>
+	Administrador de archivos Thunar (ligeramente mejor que FMan)
+sudo apt-get install gnome-keyring
+sudo apt install thunar
+	Verificar si existe nautilus-share, que es quien agrega la pestaña "Sharing" a la ventana propiedades
+whereis nautilus-share
+	Si no está instalado, instalarlo:
+sudo apt-get install nautilus-share
+sudo apt install unzip
+	</Utilities>
+
+<Software>
+</Software>
+
+<Aspecto>
+	Configurador del window manager obconf (openbox configuration manager):
+sudo apt install obconf
+https://www.opendesktop.org/p/1013482/
+https://b00merang.weebly.com/windows-10.html
+</Aspecto>
+
+</GUI mas completo>
+
+<Autologin>
+	Para habilitar autologin:
+	En lxdm, editar el archivo /etc/lightdm/lightdm.conf
+[Seat:*]
+autologin-guest=false
+autologin-user=federico
+autologin-user-timeout=0
+</Autologin>
+
+<VNC>
+	VNC, ver y controlar lo que esté en la pantalla física:
+	https://help.ubuntu.com/community/VNC/Servers
+	https://askubuntu.com/questions/1255647/cant-autostart-x11vnc-when-start-reboot-pc-lubuntu-20-04-lts
+sudo apt-get install x11vnc
+	Configurar el password(Password written to: /home/federico/.vnc/passwd):
+sudo x11vnc -storepasswd /etc/x11vnc.pass
+	Para ver las opciones:
+x11vnc -?
+	Para ejecutar el VNC server una vez, asignando el puerto y permitiendo transferencia de archivos:
+sudo x11vnc --rfbport 5900 -permitfiletransfer -rfbauth /etc/x11vnc.pass
+	Para configurar que el VNC server arranque automáticamente BAJO INIT, crear el archivo:
+sudo nano /etc/init/x11vnc.conf
+	Con este contenido:
+start on login-session-start
+script
+/usr/bin/x11vnc -xkb -forever -auth /var/run/lightdm/root/:0 -display :0 -rfbauth /etc/x11vnc.pass -rfbport 5900 -bg -o /tmp/x11vnc.log
+end script
+	Para configurar que el VNC server arranque automáticamente BAJO SYSTEMD, crear el archivo:
+sudo nano /lib/systemd/system/x11vnc.service
+	Con este contenido:
+	<service>
+[Unit]
+Description=Start x11vnc at startup.
+After=multi-user.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -auth guess -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 5900 -shared
+[Install]
+WantedBy=multi-user.target
+	</service>
+	Refrescar los servicios de systemd con el recién creado,
+sudo systemctl daemon-reload
+	Y activar el servicio
+sudo systemctl enable x11vnc.service
+</VNC>
+
+<RDP>
+	XRDP, pantalla virtual y multiusuario simultáneo:
+	Instalar del repositorio actualizado:
+sudo add-apt-repository ppa:martinx/xrdp-next
+########## sudo nano /etc/apt/preferences.d/xorgxrdp
+sudo apt-get install xrdp
+sudo apt-get install xorg-video-abi-23
+sudo apt-get install xorg-video-abi-24
+sudo apt-get install xserver-xorg-core-hwe-18.04
+sudo apt-get install xorgxrdp
+#	Configurar el uso del escritorio para XRDP
+#	(solo para el usuario logueado en ese momento)
+echo startlxqt > ~/.xsession							# Si se instalo LXQT
+ o
+echo lxsession -s LXDE -e LXDE > ~/.xsession 	# Si se instalo LXDE
+	Cambiar el puerto deseado editando el archivo de configuración
+sudo nano /etc/xrdp/xrdp.ini
+	Reiniciar XRDP
+sudo service xrdp restart
+
+</RDP>
+
+<MediaServer>
+	<series>
+	Instalar sonarr, mono (la plataforma sobre la cual corre) y mediainfo (para que obtenga info de las series):
+	https://sonarr.tv/#downloads-v3-linux-ubuntu
+	<mono>
+	( https://www.mono-project.com/download/stable/#download-lin-ubuntu ):
+sudo apt install dirmngr gnupg apt-transport-https ca-certificates
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+sudo sh -c 'echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+sudo apt update
+sudo apt install mono-complete
+	Verificar:
+mono --version
+	</mono>
+	<mediainfo>
+	( https://mediaarea.net/en/Repos#deb ):
+wget https://mediaarea.net/repo/deb/repo-mediaarea_1.0-16_all.deb
+sudo dpkg -i repo-mediaarea_1.0-16_all.deb
+sudo apt-get update
+	</mediainfo>
+	<sonarr>
+	(https://github.com/Sonarr/Sonarr/wiki/Installation#linux https://sonarr.tv/#download):
+	Version 2:
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0xA236C58F409091A18ACA53CBEBFF6B99D9B78493
+echo "deb http://apt.sonarr.tv/ master main" | sudo tee /etc/apt/sources.list.d/sonarr.list
+	Version 3:
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2009837CBFFD68F45BC180471F4F90DE2A9B4BF8
+echo "deb https://apt.sonarr.tv/ubuntu bionic main" | sudo tee /etc/apt/sources.list.d/sonarr.list
+
+sudo apt update
+sudo apt install sonarr
+	Configuración
+		Ir a http://IP-LAN:8989/settings/general y cambiar el puerto al standard ruteable 4•••6
+		Ir a http://IP:40016/add/new y agregar las series (guiándose por https://showrss.info/timeline)
+	Asociar sonarr a qBiTorrent:
+		Ir a http://IP:40016/settings/downloadclients
+		Seleccionar el cliente de torrents e ingresar IP (localhost), puerto (40011), usuario y clave
+	Asociar sonarr a showRSS (el URL del RSS está en https://showrss.info/feeds):
+		Ir a http://IP:40016/settings/indexers
+	Asociar sonarr a PushBullet (buscar el token en https://www.pushbullet.com/#settings/account)
+		Ir a http://10.35.0.1:40016/settings/connect
+	</sonarr>
+	</series>
+	<qBitTorrent>
+        sudo add-apt-repository ppa:qbittorrent-team/qbittorrent-stable
+            (sudo apt-get install software-properties-common si no encuentra el anerior)
+        sudo apt install qbittorrent-nox
+        sudo adduser --system --group qbittorrent-nox
+        sudo adduser federico qbittorrent-nox
+        sudo nano /etc/systemd/system/qbittorrent-nox.service
+            [Unit]
+              Description=qBittorrent Command Line Client
+              After=network.target
+            [Service]
+            #Do not change to "simple"
+              Type=forking
+              User=qbittorrent-nox
+              Group=qbittorrent-nox
+              UMask=000
+              ExecStart=/usr/bin/qbittorrent-nox -d --webui-port=40011
+              Restart=on-failure
+            [Install]
+              WantedBy=multi-user.target
+        sudo systemctl enable qbittorrent-nox
+        sudo systemctl daemon-reload
+        sudo systemctl start qbittorrent-nox
+        usuario=admin clave=adminadmin
+	</qBitTorrent>
+
+	<Calibre>
+https://www.digitalocean.com/community/tutorials/how-to-create-a-calibre-ebook-server-on-ubuntu-18-04
+sudo apt update && sudo apt install -y libfontconfig libgl1-mesa-glx
+wget https://download.calibre-ebook.com/linux-installer.sh
+wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh
+sudo sh linux-installer.sh
+	calibre expects a desktop environment but it will not find one on a headless server,
+	so you will see some warnings about desktop integration failing. It is safe to ignore these.
+sudo chown federico:federico ~/.config/
+	Crear la biblioteca con un libro cualquiera:
+wget http://www.gutenberg.org/ebooks/46.kindle.noimages -O christmascarol.mobi
+calibredb add *.mobi --with-library /PATH/DONDE/ESTARA/LA/BIBLIOTECA
+		<Servicio>
+		Crear un servicio para que Calibre inicie al arrancar
+sudo nano /etc/systemd/system/calibre-server.service
+## startup service
+[Unit]
+Description=calibre content server
+After=network.target
+
+[Service]
+Type=simple
+User=sammy
+Group=sammy
+ExecStart=/opt/calibre/calibre-server /PATH/DONDE/ESTARA/LA/BIBLIOTECA --enable-local-write --port=4001
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl enable calibre-server
+sudo systemctl start calibre-server
+		</Servicio>
+	</Calibre>
+	<streamio>
+	</streamio>
+</MediaServer>
+
+<TTS>
+	Instalar SVOX (sintetizador de voz) https://launchpad.net/ubuntu/precise/+source/svox/
+sudo apt-get install libttspico-utils
+	Decir alguna frase a un archivo wav:
+pico2wave -l=es-ES -w=/tmp/Decir.wav "alguna frase"
+
+	Instalar SOX (libreria de manipulación de audio) http://sox.sourceforge.net/sox.html http://www.thegeekstuff.com/2009/05/sound-exchange-sox-15-examples-to-manipulate-audio-files/
+sudo apt-get install sox
+	Aplicar un pasabanda centrado en 3000Hz de 1500 de ancho y amplificar 9dB
+sox /tmp/Decir.wav /tmp/DecirBP.wav bandpass -c 3000 1500 gain +9
+	Treblear 9dB a partir de 1KHz, normalizando para evitar clipping
+sox --norm /tmp/Decir.wav /tmp/DecirT1K.wav treble 9 1000
+	Treblear 9dB a partir de 1KHz, normalizando para evitar clipping y expandir un poco el rango dinámico
+sox --norm /tmp/Decir.wav /tmp/DecirT1KC60.wav treble 9 1000 contrast 60
+
+	Enviar el wav a la salida de audio standard:
+play /tmp/DecirXXXX.wav
+******************************************
+
+	Verbalizar y mejorar la inteligibilidad:
+pico2wave -l=es-ES -w=/tmp/Decir.wav "Cualquier frase que sirva pra probar"
+sox --norm /tmp/Decir.wav /tmp/DecirHP.wav highpass 500
+sox --norm /tmp/DecirHP.wav /tmp/DecirTreb.wav treble 12 1000
+sox --norm /tmp/DecirTreb.wav /tmp/DecirHPTC.wav compand 0.3,0.8 6:-70,-60,-20 -5 -90 0.2
+sox --norm /tmp/DecirTreb.wav /tmp/DecirHPTC.wav contrast 60
+</TTS>
+
+<VideoSplit>
+	Clonador de fuente de video:
+sudo apt-get install v4l2loopback-dkms
+sudo apt-get install v4l2loopback-utils
+</VideoSplit>
+
+	Ver si está instalado el convertidor de formato de cámaras viejas:
+locate v4l2convert.so
+LD_PRELOAD=/usr/lib/i386-linux-gnu/libv4l/v4l2convert.so motion
+
+
+	Añadir accesos directos en el escritorio:
+	Crear un archivo nombre.desktop con este contenido:
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Icon=system-file-manager
+Name=My Folder Shortcut
+Exec=pcmanfm smb://Servidor/Direc/torio
+Comment[en_US]=
+
+	Mostrar notificaciones en pantalla:
+notify-send 'titulo' 'mensaje'
+	(puede ser necesario instalarlo con sudo apt install libnotify-bin)
+
+	Mostrar cajas de diálogo en pantalla:
+	zenity --error --text="Ocurrio un error\!" --title="Danger Will Robinson\!"
+	(puede ser necesario instalarlo con sudo apt install zenity)
+
+BENCHMARKS:
+sudo apt install sysbench
+sysbench fileio --file-test-mode=seqwr run > sysbench_$HOSTNAME.txt
+rm test_file*
+sysbench cpu run >> sysbench_$HOSTNAME.txt
+sysbench memory run >> sysbench_$HOSTNAME.txt
+sysbench threads run >> sysbench_$HOSTNAME.txt
+sysbench mutex run >> sysbench_$HOSTNAME.txt
+
+wget http://cdn.geekbench.com/Geekbench-4.3.3-Linux.tar.gz
+tar -zxvf Geekbench-4.3.3-Linux.tar.gz
+cd Geekbench-4.3.3-Linux
+./geekbench_x86_64
+./geekbench_x86_32
+	sudo apt-get install libc6:i386 libstdc++6:i386
