@@ -1,0 +1,53 @@
+https://www.baeldung.com/linux/bashrc-vs-bash-profile-vs-profile
+
+Shell no interactivo: Sesion invocada por un script o un cron, sin intervencion de ningun usuario.
+Shell interactivo sin login: Sesion manejada por el usuario iniciada desde otra sesion, grafica o cli, que no pide login usuario+clave
+Shell interactivo con login: Sesion manejada por el usuario presente en consola o remoto por ssh que pide login usuario+clave
+
+Al iniciar un shell:
+  Un shell iniciado desde un script o cron, "non-interactive shell", NO PROCESA NINGUN ARCHIVO DE INICIO
+  Un shell iniciado desde otro shell (gráfico o de texto) que no pide usuario+clave, "interactive non-login shell" EJECUTA SOLO ~/.bashrc
+  Un shell iniciado con usuario+clave (en consola o remoto), "interactive login shell" ejecuta:
+    1: /etc/profile (cualquier usuario)
+    2: ~/.bash_profile del usuario que inició sesion
+    3: ~/.bash_login si no encontro el anterior
+    4: ~/.profile si no encontro el anterior
+
+Mantengo en este directorio /etc/0-bashStandard/ mi configuración personalizada de shell cli
+sincronizada entre todos los computadores via SyncThing (Dropbox se pega en Linux, no he intentado GDrive ni git)
+
+
+
+DEPRECADO:
+El .profile en el home ~/  de cada usuario está hardcodeado para
+ ejecutar el .bashrc común en este directorio
+El .profile "plantilla" para usuarios nuevos está en /etc/skel
+Los usuarios existentes hay que copiarles el .profile que está
+ en este directorio (softlink del  que está en /etc/skel)
+ ( sudo ln -s /etc/skel/.profile /etc/0-bashStandard/.profile )
+
+El .bashrc inicializa variables, el prompt y activa los aliases
+ definidos en .bash_aliases en el mismo directorio que .bashrc ${0%/*}
+
+Las otras configuraciones son a los scripts de motd en /etc/update_motd.d,
+ "Message Of The Day" que se muestra al iniciar sesion.
+ softlinkeado aqui por comodidad de edicion
+ ( sudo ln -s /etc/update-motd.d /etc/0-bashStandard/update-motd.d )
+ Se ejecutan en orden alfabetico, los que no se desee ejecutar
+ se les puede poner un exit 0  al principio, para no eliminarlos
+
+
+
+if [ "$BASH" ]; then
+  if [ -f ~/.bashrc ]; then
+    . /etc/0-bashStandard/.bashrc
+  fi
+fi
+
+# Que los archivos creados sean accesibles a todo los usuarios
+#  (que el acceso sea controlado por las definiciones en samba
+#  y por scripts segun se necesite restringir)
+umask 000
+
+
+mesg n || true
